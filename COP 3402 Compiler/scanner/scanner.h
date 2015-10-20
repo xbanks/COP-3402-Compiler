@@ -4,12 +4,12 @@ typedef enum {
 	gtrsym, geqsym, lparentsym, rparentsym, commasym, semicolonsym,
 	periodsym, becomessym, beginsym, endsym, ifsym, thensym,
 	whilesym, dosym, callsym, constsym, varsym, procsym, writesym,
-	readsym, elsesym
+	readsym, elsesym, numtokens
 } token_type;
 
 char *tokenArr[] = {
-    "skiparooni",
-    "",
+    NULL,
+    " ",
     "letter",
     "digit",
     "+",
