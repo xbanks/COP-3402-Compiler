@@ -16,17 +16,38 @@
 #define IDENT_LIMIT 11
 #define NUM_LIMIT 5
 
+void getToken();
+char * getIdent();
+void enter(symbol s);
+void block();
+void constDeclaration();
+void varDeclaration();
+void procDelcaration();
+void statement();
+void condition();
+void expression();
+void term();
+void factor();
+void error(int num);
 
 char TOKEN;
 int LEVEL;
-FILE * tokenFP = null;
-FILE *
+FILE * tokenFP;
+FILE * symboltableFP;
 
-int void main(){
+int main(){
+    tokenFP = (FILE *) fopen(__TOKEN_LIST__, "r");
+    symboltableFP = (FILE *) fopen(__SYMBOL_TABLE__, "w+");
 
+    if(tokenFP == NULL){
+        printf("%s\n", "Token list not found");
+        return 0;
+    }
 
-
-    fopen(__TOKEN_LIST__, "r");
+    if(symboltableFP == NULL){
+        printf("%s\n", "symboltableFP could not be created");
+        return 0;
+    }
 
     getToken();
     block();
@@ -35,19 +56,27 @@ int void main(){
        error(TOKEN);
     }
 
+
+    fclose(tokenFP);
+    fclose(symboltableFP);
     return 0;
 }
 
 void getToken()
 {
     //pull next token from input file tokenlist.
-    if(fscanf(__TOKEN_LIST__, "%s", TOKEN))
+    if(fscanf(tokenFP, "%s", TOKEN)){
+        printf("TOKEN: %s\n", TOKEN);
+    }
 }
 
-char * getIdent(){
+char * getIdent()
+{
     char ident[IDENT_LIMIT];
 
-    if( (fscanf(tokenFP, "%s", ident)) )
+    if( (fscanf(tokenFP, "%s", ident)) ){
+        printf("IDENT: %s\n", TOKEN);
+    }
 }
 
 void enter(symbol s)
@@ -78,7 +107,7 @@ void constDeclaration()
         getToken();
         if(TOKEN != numbersym)
             error(2);
-        enter(); //need variables inserted  (constant, ident, number)
+        // enter(); //need variables inserted  (constant, ident, number)
         getToken();
     }while(TOKEN != commasym);
     if(TOKEN == semicolonsym)
@@ -93,7 +122,7 @@ void varDeclaration()
         if(TOKEN != identsym)
             error(0);
         getToken();
-        enter(); //need variables inserted (variable, ident, level)
+        // enter(); //need variables inserted (variable, ident, level)
     }while(TOKEN != commasym);
     if(TOKEN == semicolonsym)
         error(17);
@@ -107,7 +136,7 @@ void procDelcaration()
         getToken();
         if(TOKEN != identsym)
             error(0);
-        enter(); //needs variables inserted (proocedure, ident)
+        // enter(); //needs variables inserted (proocedure, ident)
         getToken();
         if(TOKEN != semicolonsym)
             error(17);
@@ -188,7 +217,7 @@ void condition()
 
 int relOP()
 {
-    if(TOKEN ==  equalsym || neqsym || lessym || leqsym || gtrsym || geqsym)
+    if(TOKEN ==  eqsym || TOKEN == neqsym || TOKEN == lessym || TOKEN == leqsym || TOKEN == gtrsym || geqsym)
         return 1;
     return 0;
 }
