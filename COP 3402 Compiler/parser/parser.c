@@ -49,7 +49,7 @@ void constDeclaration() //needs work in if statements
             error(0);
         getToken();
         if(TOKEN != eqsym)
-            error(3);
+            error(); //needs error
         getToken();
         if(TOKEN != numbersym)
             error(2);
@@ -96,12 +96,69 @@ void procDelcaration()
 
 void statement()
 {
-
+    if(TOKEN == identsym)
+    {
+        getToken();
+        if(TOKEN != becomessym)
+            error(3);
+        getToken();
+        expression();
+    }
+    else if(TOKEN == callsym)
+    {
+        getToken();
+        if(TOKEN != identsym)
+            error(14);
+        getToken();
+    }
+    else if(TOKEN == beginsym)
+    {
+        getToken();
+        statement();
+        while(TOKEN == semicolonsym)
+        {
+            getToken();
+            statement();
+        }
+        if(TOKEN != endsym)
+            error(); //begin must be closed with end
+        getToken();
+    }
+    else if(TOKEN == ifsym)
+    {
+        getToken();
+        condition();
+        if(TOKEN != thensym)
+            error(16);
+        getToken();
+        statement();
+    }
+    else if(TOKEN == whilesym)
+    {
+        getToken();
+        condition;
+        if(TOKEN != dosym)
+            error(18);
+        getToken();
+        statement();
+    }
 }
 
 void condition()
 {
-
+    if(TOKEN == oddsym)
+    {
+        getToken();
+        expression();
+    }
+    else
+    {
+        expression();
+        if(TOKEN != RELATION) //da fuq is relation?
+            error(20);
+        getToken();
+        expression();
+    }
 }
 
 void relOP()
@@ -111,19 +168,45 @@ void relOP()
 
 void expression()
 {
-
+    if(TOKEN == plussym)
+        getToken();
+    term();
+    while(TOKEN == plussym)
+    {
+        getToken();
+        term();
+    }
 }
 
 void term()
 {
-
+    factor();
+    while(TOKEN == multsym)
+    {
+        getToken();
+        factor();
+    }
 }
 
 int factor()
 {
     int TF;
-
     return TF;
+
+    if(TOKEN == identsym)
+        getToken();
+    else if(TOKEN ==numbersym)
+        getToken();
+    else if(TOKEN == lparentsym)
+    {
+        getToken();
+        expression();
+        if(TOKEN != rparentsym)
+            error(22);
+        getToken();
+    }
+    else
+        error(); //identifier, (, or number expected
 }
 
 int number()
@@ -218,7 +301,12 @@ void error(int num)
             printf("ERROR: Relational operator expected.\n");
             break;
         case 21:
-            printf("ERROR: Expression must not contain a procedure identifier.\n");
+            printf("ERROR: Expression must not contain a procedure identifier.typedef enum {
+nulsym = 1, identsym, numbersym, plussym, minussym,multsym,  slashsym, oddsym, eqsym, neqsym, lessym, leqsym,gtrsym, geqsym, lparentsym, rparentsym, commasym, semicolonsym,periodsym, becomessym, beginsym, endsym, ifsym, thensym, whilesym, dosym, callsym, constsym, varsym, procsym, writesym,readsym, elsesym
+} token_type;#define MAX_SYMBOL_TABLE_SIZE 100
+/* For constants, store kind, name and val   For variables, store kind, name, L and M   For procedures, store kind, name, L and M */typedef struct symbol {  int kind;   // const = 1, var = 2, proc = 3 char name[12]; // name up to 11 chars int val;   // value int level;  // L level int addr;   // M address} symbol;
+
+symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];\n");
             break;
         case 22:
             printf("ERROR: Right parenthesis missing.\n");
