@@ -85,10 +85,10 @@ void getToken()
 
 char * getIdent()
 {
-    char ident[IDENT_LIMIT];
+    char * ident = (char *)malloc(sizeof(char) * IDENT_LIMIT + 1);
 
     if( (fscanf(tokenFP, "%s", ident)) ){
-        printf("IDENT: %s\n", TOKEN);
+        printf("IDENT: %s\n", ident);
         return ident;
     }
 
