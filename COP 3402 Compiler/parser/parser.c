@@ -353,6 +353,6 @@ void error(int num)
         case 28:
             printf("ERROR: identifier, (, or number expected.\n");
             break;
-        exit(0);
     }
+    exit(0);
 }
