@@ -26,6 +26,6 @@ PL/0 Parser Error Messages Master List
 23. The preceding factor cannot begin with this symbol.
 24. An expression cannot begin with this symbol.
 25. This number is too large.
-26. Identifier should be followed by number.
+26. = expected.
 27. begin must be closed with end.
 28. identifier, (, or number expected.
