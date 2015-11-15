@@ -27,7 +27,7 @@ int void main(){
 
 void getToken()
 {
-
+    //pull next token from input file tokenlist.txt
 }
 
 void block()
@@ -41,7 +41,7 @@ void block()
     statement();
 }
 
-void constDeclaration() //needs work in if statements
+void constDeclaration()
 {
     do{
         getToken();
@@ -49,7 +49,7 @@ void constDeclaration() //needs work in if statements
             error(0);
         getToken();
         if(TOKEN != eqsym)
-            error(); //needs error
+            error(26);
         getToken();
         if(TOKEN != numbersym)
             error(2);
@@ -121,7 +121,7 @@ void statement()
             statement();
         }
         if(TOKEN != endsym)
-            error(); //begin must be closed with end
+            error(27);
         getToken();
     }
     else if(TOKEN == ifsym)
@@ -206,7 +206,7 @@ int factor()
         getToken();
     }
     else
-        error(); //identifier, (, or number expected
+        error(28);
 }
 
 int number()
@@ -239,7 +239,7 @@ void error(int num)
     switch(num)
     {
         case 0:
-            printf("ERROR: Missing Identifier.\n");
+            printf("ERROR: Missing procedure declaration.\n");
             break;
         case 1:
             printf("ERROR: Use = instead of :=.\n");
