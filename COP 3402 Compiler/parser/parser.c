@@ -100,6 +100,7 @@ int getNumber(){
     int num;
 
     if(fscanf(tokenFP, "%d", &num) != EOF){
+        printf("NUMBER:%d\n", num);
         return num;
     }
 
@@ -143,6 +144,7 @@ void symTablePrint()
 
 void block()
 {
+    printf("BLOCK\n");
     if(TOKEN == constsym)
         constDeclaration();
     if(TOKEN == varsym)
@@ -154,6 +156,7 @@ void block()
 
 void constDeclaration()
 {
+    printf("CONST\n");
     do{
         getToken();
         if(TOKEN != identsym)
@@ -168,14 +171,15 @@ void constDeclaration()
         int number = getNumber();
         // enter(1, identifier, number, LEVEL, ADDRESS);
         getToken();
-    }while(TOKEN != commasym);
-    if(TOKEN == semicolonsym)
+    }while(TOKEN == commasym);
+    if(TOKEN != semicolonsym)
         error(17);
     getToken();
 }
 
 void varDeclaration()
 {
+    printf("VAR\n");
     do{
         getToken();
         if(TOKEN != identsym)
@@ -183,14 +187,15 @@ void varDeclaration()
         char * identifier = getIdent();
         getToken();
         // enter(2, identifier, 0, LEVEL, ADDRESS);
-    }while(TOKEN != commasym);
-    if(TOKEN == semicolonsym)
+    }while(TOKEN == commasym);
+    if(TOKEN != semicolonsym)
         error(17);
     getToken();
 }
 
 void procDelcaration()
 {
+    printf("PROC\n");
     while(TOKEN == procsym)
     {
         getToken();
@@ -213,8 +218,10 @@ void procDelcaration()
 
 void statement()
 {
+    printf("STATEMENT\n");
     if(TOKEN == identsym)
     {
+        char * ident = getIdent();
         getToken();
         if(TOKEN != becomessym)
             error(3);
@@ -226,6 +233,8 @@ void statement()
         getToken();
         if(TOKEN != identsym)
             error(14);
+
+        char * ident = getIdent();
         getToken();
     }
     else if(TOKEN == beginsym)
@@ -249,6 +258,10 @@ void statement()
             error(16);
         getToken();
         statement();
+        if(TOKEN == elsesym){
+            getToken();
+            statement();
+        }
     }
     else if(TOKEN == whilesym)
     {
@@ -263,6 +276,7 @@ void statement()
 
 void condition()
 {
+    printf("CONDITION\n");
     if(TOKEN == oddsym)
     {
         getToken();
@@ -280,6 +294,7 @@ void condition()
 
 int relOP()
 {
+    printf("IN RELOP\n");
     if(TOKEN ==  eqsym || TOKEN == neqsym || TOKEN == lessym || TOKEN == leqsym || TOKEN == gtrsym || geqsym)
         return 1;
     return 0;
@@ -287,10 +302,11 @@ int relOP()
 
 void expression()
 {
-    if(TOKEN == plussym)
+    printf("EXPRESSION\n");
+    if(TOKEN == plussym || TOKEN == minussym)
         getToken();
     term();
-    while(TOKEN == plussym)
+    while(TOKEN == plussym || TOKEN == minussym)
     {
         getToken();
         term();
@@ -299,8 +315,9 @@ void expression()
 
 void term()
 {
+    printf("TERM\n");
     factor();
-    while(TOKEN == multsym)
+    while(TOKEN == multsym || TOKEN == slashsym)
     {
         getToken();
         factor();
@@ -309,10 +326,15 @@ void term()
 
 void factor()
 {
-    if(TOKEN == identsym)
+    printf("FACTOR\n");
+    if(TOKEN == identsym){
+        char * ident = getIdent();
         getToken();
-    else if(TOKEN ==numbersym)
+    }
+    else if(TOKEN ==numbersym){
+        int num = getNumber();
         getToken();
+    }
     else if(TOKEN == lparentsym)
     {
         getToken();
@@ -327,6 +349,7 @@ void factor()
 
 void error(int num)
 {
+    printf("ERROR\n");
     switch(num)
     {
         case 0:
