@@ -1,6 +1,8 @@
 /*
    Assignment 3
    11/16/15
+   COP 3402
+
    Kody Denues
    Emre Kutsal
    Xavier Banks
@@ -8,17 +10,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "parser.h"
 
 #define __TOKEN_LIST__ "./tokenlist.txt"
 #define __SYMBOL_TABLE__ "./symboltable.txt"
-#define IDENT_LIMIT 11
+#define IDENT_LIMIT 12
 #define NUM_LIMIT 5
 
 void getToken();
 char * getIdent();
-void enter(symbol s);
+void enter(int kind, char *name, int val, int level, int addr);
 void block();
 void constDeclaration();
 void varDeclaration();
@@ -30,14 +33,20 @@ void term();
 void factor();
 void error(int num);
 
-char TOKEN;
+int TOKEN;
 int LEVEL;
+int ADDRESS;
 FILE * tokenFP;
 FILE * symboltableFP;
+int symLength;
 
 int main(){
     tokenFP = (FILE *) fopen(__TOKEN_LIST__, "r");
     symboltableFP = (FILE *) fopen(__SYMBOL_TABLE__, "w+");
+
+    LEVEL = 0;
+    ADDRESS = 4;
+    symLength = 0;
 
     if(tokenFP == NULL){
         printf("%s\n", "Token list not found");
@@ -53,7 +62,7 @@ int main(){
     block();
     if(TOKEN != periodsym)
     {
-       error(TOKEN);
+       error(9);
     }
 
 
@@ -65,8 +74,12 @@ int main(){
 void getToken()
 {
     //pull next token from input file tokenlist.
-    if(fscanf(tokenFP, "%s", TOKEN)){
-        printf("TOKEN: %s\n", TOKEN);
+    printf("in getToken\n");
+    if(fscanf(tokenFP, "%d", &TOKEN) != EOF){
+        printf("TOKEN: %d\n", TOKEN);
+    }
+    else{
+        printf("nothing in tokenFP\n");
     }
 }
 
@@ -76,12 +89,56 @@ char * getIdent()
 
     if( (fscanf(tokenFP, "%s", ident)) ){
         printf("IDENT: %s\n", TOKEN);
+        return ident;
     }
+
+    printf("in getIdent EOF");
+    return NULL;
 }
 
-void enter(symbol s)
-{
+int getNumber(){
+    int num;
 
+    if(fscanf(tokenFP, "%d", &num) != EOF){
+        return num;
+    }
+
+    printf("in getNumber EOF\n");
+    return NULL;
+}
+
+/* For constants, store kind, name and val
+ For variables, store kind, name, L and M
+ For procedures, store kind, name, L and M */
+void enter(int kind, char * name, int val, int level, int addr)
+{
+    symLength++;
+    symbol s;
+
+    s.kind = kind;
+    strcpy(s.name, name);
+    s.val = val;
+    s.level = level;
+    s.addr = addr;
+
+    symbol_table[symLength] = s;
+}
+
+void symTablePrint()
+{
+    int i;
+
+    fprintf(symboltableFP, "Name         Type  Level Value\n");
+    for(i = 0; i < symLength; i++)
+    {
+        fprintf(symboltableFP, "%12c ", symbol_table[i].name);
+        if(symbol_table[i].kind == 1)
+            fprintf(symboltableFP, "const %5d %5d\n",symbol_table[i].level, symbol_table[i].val);
+        else if(symbol_table[i].kind == 2)
+            fprintf(symboltableFP, "var   %5d %5d\n",symbol_table[i].level, symbol_table[i].addr);
+        else
+            fprintf(symboltableFP, "proc  %5d %5d\n",symbol_table[i].level, symbol_table[i].addr);
+    }
 }
 
 void block()
@@ -101,13 +158,15 @@ void constDeclaration()
         getToken();
         if(TOKEN != identsym)
             error(0);
+        char * identifier = getIdent();
         getToken();
         if(TOKEN != eqsym)
             error(26);
         getToken();
         if(TOKEN != numbersym)
             error(2);
-        // enter(); //need variables inserted  (constant, ident, number)
+        int number = getNumber();
+        // enter(1, identifier, number, LEVEL, ADDRESS);
         getToken();
     }while(TOKEN != commasym);
     if(TOKEN == semicolonsym)
@@ -121,8 +180,9 @@ void varDeclaration()
         getToken();
         if(TOKEN != identsym)
             error(0);
+        char * identifier = getIdent();
         getToken();
-        // enter(); //need variables inserted (variable, ident, level)
+        // enter(2, identifier, 0, LEVEL, ADDRESS);
     }while(TOKEN != commasym);
     if(TOKEN == semicolonsym)
         error(17);
@@ -136,12 +196,15 @@ void procDelcaration()
         getToken();
         if(TOKEN != identsym)
             error(0);
-        // enter(); //needs variables inserted (proocedure, ident)
+        char * identifier = getIdent();
+        // enter(3, identifier, 0, LEVEL, ADDRESS);
         getToken();
         if(TOKEN != semicolonsym)
             error(17);
         getToken();
-        block(LEVEL+1);
+        LEVEL = LEVEL+1;
+        block();
+        LEVEL = LEVEL-1;
         if(TOKEN != semicolonsym)
             error(17);
         getToken();
