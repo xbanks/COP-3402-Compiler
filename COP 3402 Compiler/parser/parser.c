@@ -32,13 +32,17 @@ void expression();
 void term();
 void factor();
 void error(int num);
+void symTablePrint();
 
 int TOKEN;
 int LEVEL;
+int PROC_ADDRESS;
 int ADDRESS;
 FILE * tokenFP;
 FILE * symboltableFP;
 int symLength;
+
+symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
 
 int main(){
     tokenFP = (FILE *) fopen(__TOKEN_LIST__, "r");
@@ -46,6 +50,7 @@ int main(){
 
     LEVEL = 0;
     ADDRESS = 4;
+    PROC_ADDRESS = 0;
     symLength = 0;
 
     if(tokenFP == NULL){
@@ -65,7 +70,7 @@ int main(){
        error(9);
     }
 
-
+    symTablePrint();
     fclose(tokenFP);
     fclose(symboltableFP);
     return 0;
@@ -129,16 +134,16 @@ void symTablePrint()
 {
     int i;
 
-    fprintf(symboltableFP, "Name         Type  Level Value\n");
-    for(i = 0; i < symLength; i++)
+    fprintf(symboltableFP, "Name\tType \tLevel\tValue\n");
+    for(i = 1; i <= symLength; i++)
     {
-        fprintf(symboltableFP, "%12c ", symbol_table[i].name);
+        fprintf(symboltableFP, "%s\t", symbol_table[i].name);
         if(symbol_table[i].kind == 1)
-            fprintf(symboltableFP, "const %5d %5d\n",symbol_table[i].level, symbol_table[i].val);
+            fprintf(symboltableFP, "const\t%5d\t%5d\n",symbol_table[i].level, symbol_table[i].val);
         else if(symbol_table[i].kind == 2)
-            fprintf(symboltableFP, "var   %5d %5d\n",symbol_table[i].level, symbol_table[i].addr);
+            fprintf(symboltableFP, "var\t%5d\t%5d\n",symbol_table[i].level, symbol_table[i].addr);
         else
-            fprintf(symboltableFP, "proc  %5d %5d\n",symbol_table[i].level, symbol_table[i].addr);
+            fprintf(symboltableFP, "proc\t%5d\t%5d\n",symbol_table[i].level, symbol_table[i].addr);
     }
 }
 
@@ -169,7 +174,7 @@ void constDeclaration()
         if(TOKEN != numbersym)
             error(2);
         int number = getNumber();
-        // enter(1, identifier, number, LEVEL, ADDRESS);
+        enter(1, identifier, number, LEVEL, ADDRESS);
         getToken();
     }while(TOKEN == commasym);
     if(TOKEN != semicolonsym)
@@ -186,7 +191,8 @@ void varDeclaration()
             error(0);
         char * identifier = getIdent();
         getToken();
-        // enter(2, identifier, 0, LEVEL, ADDRESS);
+        enter(2, identifier, 0, LEVEL, ADDRESS);
+        ADDRESS++;
     }while(TOKEN == commasym);
     if(TOKEN != semicolonsym)
         error(17);
@@ -202,18 +208,36 @@ void procDelcaration()
         if(TOKEN != identsym)
             error(0);
         char * identifier = getIdent();
-        // enter(3, identifier, 0, LEVEL, ADDRESS);
+        PROC_ADDRESS++;
+        enter(3, identifier, 0, LEVEL, PROC_ADDRESS);
         getToken();
         if(TOKEN != semicolonsym)
             error(17);
         getToken();
         LEVEL = LEVEL+1;
+        ADDRESS = 4;
         block();
         LEVEL = LEVEL-1;
         if(TOKEN != semicolonsym)
             error(17);
         getToken();
     }
+}
+
+int symbolType(char * name)
+{
+    int i = 0;
+    printf("ST: %s\n", name);
+    for(i =0; i <= symLength; i++){
+        printf("%s\n", symbol_table[i].name);
+        if(strcmp(symbol_table[i].name, name) == 0)
+        {
+            printf("returning this\n");
+            return symbol_table[i].kind;
+        }
+    }
+
+    return -1;
 }
 
 void statement()
@@ -225,6 +249,18 @@ void statement()
         getToken();
         if(TOKEN != becomessym)
             error(3);
+
+        int identType = symbolType(ident);
+        if(identType == -1){
+            printf("This variable does not exist\n"); // Check for scope!
+            exit(0);
+        }
+
+        if(identType != 2){
+            printf("Type cast ERROR\n"); // add these to the master error list
+            exit(0);
+        }
+
         getToken();
         expression();
     }
@@ -431,7 +467,7 @@ void error(int num)
             printf("ERROR: This number is too large.\n");
             break;
         case 26:
-            printf("ERROR: Identifier should be followed by number.\n");
+            printf("ERROR: = expected.\n");
             break;
         case 27:
             printf("ERROR: begin must be closed with end.\n");
