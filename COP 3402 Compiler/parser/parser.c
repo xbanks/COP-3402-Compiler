@@ -11,10 +11,23 @@
 
 #include "parser.h"
 
+#define __TOKEN_LIST__ "./tokenlist.txt"
+#define __SYMBOL_TABLE__ "./symboltable.txt"
+#define IDENT_LIMIT 11
+#define NUM_LIMIT 5
+
+
 char TOKEN;
 int LEVEL;
+FILE * tokenFP = null;
+FILE *
 
 int void main(){
+
+
+
+    fopen(__TOKEN_LIST__, "r");
+
     getToken();
     block();
     if(TOKEN != periodsym)
@@ -27,7 +40,19 @@ int void main(){
 
 void getToken()
 {
-    //pull next token from input file tokenlist.txt
+    //pull next token from input file tokenlist.
+    if(fscanf(__TOKEN_LIST__, "%s", TOKEN))
+}
+
+char * getIdent(){
+    char ident[IDENT_LIMIT];
+
+    if( (fscanf(tokenFP, "%s", ident)) )
+}
+
+void enter(symbol s)
+{
+
 }
 
 void block()
@@ -53,7 +78,7 @@ void constDeclaration()
         getToken();
         if(TOKEN != numbersym)
             error(2);
-        enter(); //need variables inserted
+        enter(); //need variables inserted  (constant, ident, number)
         getToken();
     }while(TOKEN != commasym);
     if(TOKEN == semicolonsym)
@@ -68,7 +93,7 @@ void varDeclaration()
         if(TOKEN != identsym)
             error(0);
         getToken();
-        enter(); //need variables inserted
+        enter(); //need variables inserted (variable, ident, level)
     }while(TOKEN != commasym);
     if(TOKEN == semicolonsym)
         error(17);
@@ -82,7 +107,7 @@ void procDelcaration()
         getToken();
         if(TOKEN != identsym)
             error(0);
-        enter(); //needs variables
+        enter(); //needs variables inserted (proocedure, ident)
         getToken();
         if(TOKEN != semicolonsym)
             error(17);
@@ -154,16 +179,18 @@ void condition()
     else
     {
         expression();
-        if(TOKEN != RELATION) //da fuq is relation?
+        if(relOP() == 0)
             error(20);
         getToken();
         expression();
     }
 }
 
-void relOP()
+int relOP()
 {
-
+    if(TOKEN ==  equalsym || neqsym || lessym || leqsym || gtrsym || geqsym)
+        return 1;
+    return 0;
 }
 
 void expression()
@@ -188,11 +215,8 @@ void term()
     }
 }
 
-int factor()
+void factor()
 {
-    int TF;
-    return TF;
-
     if(TOKEN == identsym)
         getToken();
     else if(TOKEN ==numbersym)
@@ -207,31 +231,6 @@ int factor()
     }
     else
         error(28);
-}
-
-int number()
-{
-    int TF;
-
-    return TF;
-}
-
-int ident()
-    int TF;
-
-    return TF;
-}
-
-int digit()
-    int TF;
-
-    return TF;
-}
-
-int letter()
-    int TF;
-
-    return TF;
 }
 
 void error(int num)
@@ -264,6 +263,7 @@ void error(int num)
             break;
         case 8:
             printf("ERROR: Incorrect symbol after statement part in block.\n");
+            break;
         case 9:
             printf("ERROR: Period expected.\n");
             break;
@@ -315,4 +315,14 @@ void error(int num)
         case 25:
             printf("ERROR: This number is too large.\n");
             break;
+        case 26:
+            printf("ERROR: Identifier should be followed by number.\n");
+            break;
+        case 27:
+            printf("ERROR: begin must be closed with end.\n");
+            break;
+        case 28:
+            printf("ERROR: identifier, (, or number expected.\n");
+            break;
+    }
 }
