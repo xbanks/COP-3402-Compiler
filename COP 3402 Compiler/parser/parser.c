@@ -11,13 +11,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "parser.h"
 
 #define __TOKEN_LIST__ "./tokenlist.txt"
 #define __SYMBOL_TABLE__ "./symboltable.txt"
+#define __MCODE__ "./mcode.txt"
 #define IDENT_LIMIT 12
 #define NUM_LIMIT 5
+#define MAX_CODE_LENGTH 500
 
 void getToken();
 char * getIdent();
@@ -33,14 +34,19 @@ void term();
 void factor();
 void error(int num);
 void symTablePrint();
+void emit(int op, int l, int m);
+void codeGenPrint();
 
 int TOKEN;
 int LEVEL;
-int PROC_ADDRESS;
+int PROC_ADDRESS;   
 int ADDRESS;
 FILE * tokenFP;
 FILE * symboltableFP;
 int symLength;
+int codeLength;
+
+Instruction code[MAX_CODE_LENGTH];
 
 symbol symbol_table[MAX_SYMBOL_TABLE_SIZE];
 
@@ -52,6 +58,7 @@ int main(){
     ADDRESS = 4;
     PROC_ADDRESS = 0;
     symLength = 0;
+    codeLength = 0;
 
     if(tokenFP == NULL){
         printf("%s\n", "Token list not found");
@@ -63,6 +70,8 @@ int main(){
         return 0;
     }
 
+
+    // emit(JMP, 0, 0);
     getToken();
     block();
     if(TOKEN != periodsym)
@@ -70,7 +79,9 @@ int main(){
        error(9);
     }
 
+    emit(SIO3, 0, 3);
     symTablePrint();
+    codeGenPrint();
     fclose(tokenFP);
     fclose(symboltableFP);
     return 0;
@@ -147,15 +158,30 @@ void symTablePrint()
     }
 }
 
+void codeGenPrint(){
+    FILE * mcodePtr = fopen(__MCODE__, "w+");
+
+    int i;
+    for (i = 0; i < codeLength; ++i)
+    {
+        fprintf(mcodePtr, "%d %d %d\n", code[i].OP, code[i].L, code[i].M);
+    }
+
+    fclose(mcodePtr);
+}
+
 void block()
 {
     printf("BLOCK\n");
-    if(TOKEN == constsym)
+    if(TOKEN == constsym){
         constDeclaration();
-    if(TOKEN == varsym)
+    }
+    if(TOKEN == varsym){
         varDeclaration();
-    if(TOKEN == procsym)
+    }
+    if(TOKEN == procsym){
         procDelcaration();
+    }
     statement();
 }
 
@@ -164,21 +190,25 @@ void constDeclaration()
     printf("CONST\n");
     do{
         getToken();
-        if(TOKEN != identsym)
+        if(TOKEN != identsym){
             error(0);
+        }
         char * identifier = getIdent();
         getToken();
-        if(TOKEN != eqsym)
+        if(TOKEN != eqsym){
             error(26);
+        }
         getToken();
-        if(TOKEN != numbersym)
+        if(TOKEN != numbersym){
             error(2);
+        }
         int number = getNumber();
         enter(1, identifier, number, LEVEL, ADDRESS);
         getToken();
     }while(TOKEN == commasym);
-    if(TOKEN != semicolonsym)
+    if(TOKEN != semicolonsym){
         error(17);
+    }
     getToken();
 }
 
@@ -187,15 +217,17 @@ void varDeclaration()
     printf("VAR\n");
     do{
         getToken();
-        if(TOKEN != identsym)
+        if(TOKEN != identsym){
             error(0);
+        }
         char * identifier = getIdent();
         getToken();
         enter(2, identifier, 0, LEVEL, ADDRESS);
         ADDRESS++;
     }while(TOKEN == commasym);
-    if(TOKEN != semicolonsym)
+    if(TOKEN != semicolonsym){
         error(17);
+    }
     getToken();
 }
 
@@ -205,34 +237,59 @@ void procDelcaration()
     while(TOKEN == procsym)
     {
         getToken();
-        if(TOKEN != identsym)
+        if(TOKEN != identsym){
             error(0);
+        }
         char * identifier = getIdent();
         PROC_ADDRESS++;
         enter(3, identifier, 0, LEVEL, PROC_ADDRESS);
         getToken();
-        if(TOKEN != semicolonsym)
+        if(TOKEN != semicolonsym){
             error(17);
+        }
         getToken();
         LEVEL = LEVEL+1;
         ADDRESS = 4;
+
+        emit(JMP, 0, 0);
+        emit(INC, 0, 6);
+        int tempCodePosition = codeLength;
+        printf("tempCodePosition: %d", tempCodePosition);
         block();
+        emit(OPR, 0, 0);
+        printf("NEW codeLength: %d", codeLength);
+        code[tempCodePosition].M = codeLength;
         LEVEL = LEVEL-1;
-        if(TOKEN != semicolonsym)
+        if(TOKEN != semicolonsym){
             error(17);
+        }
         getToken();
     }
 }
 
-int symbolType(char * name)
+int usableSymbol(char * name, int level)
 {
     int i = 0;
     printf("ST: %s\n", name);
-    for(i =0; i <= symLength; i++){
-        printf("%s\n", symbol_table[i].name);
-        if(strcmp(symbol_table[i].name, name) == 0)
+
+    for(i = 0; i <= symLength; i++){
+        if(strcmp(symbol_table[i].name, name) == 0 && level >= symbol_table[i].level)
         {
-            printf("returning this\n");
+            printf("%s %s match\n", name, symbol_table[i].name);
+            return 2;
+        }
+    }
+
+    return -1;
+}
+
+int symbolType(char * name, int level){
+    int i = 0;
+
+    for(i = 0; i <= symLength; i++){
+        if(strcmp(symbol_table[i].name, name) == 0 && level >= symbol_table[i].level)
+        {
+            printf("%s %s match\n", name, symbol_table[i].name);
             return symbol_table[i].kind;
         }
     }
@@ -247,16 +304,18 @@ void statement()
     {
         char * ident = getIdent();
         getToken();
-        if(TOKEN != becomessym)
+        if(TOKEN != becomessym){
             error(3);
+        }
 
-        int identType = symbolType(ident);
-        if(identType == -1){
-            printf("This variable does not exist\n"); // Check for scope!
+        int scoped = usableSymbol(ident, LEVEL);
+        if(scoped == -1){
+            printf("Undeclared\n"); // Check for scope!
             exit(0);
         }
 
-        if(identType != 2){
+        if (symbolType(ident, LEVEL) != 2)
+        {
             printf("Type cast ERROR\n"); // add these to the master error list
             exit(0);
         }
@@ -302,7 +361,7 @@ void statement()
     else if(TOKEN == whilesym)
     {
         getToken();
-        condition;
+        condition();
         if(TOKEN != dosym)
             error(18);
         getToken();
@@ -331,8 +390,18 @@ void condition()
 int relOP()
 {
     printf("IN RELOP\n");
-    if(TOKEN ==  eqsym || TOKEN == neqsym || TOKEN == lessym || TOKEN == leqsym || TOKEN == gtrsym || geqsym)
+    if(TOKEN ==  eqsym || TOKEN == neqsym ||
+     TOKEN == lessym || TOKEN == leqsym || 
+     TOKEN == gtrsym || geqsym)
         return 1;
+
+    switch(TOKEN){
+        case eqsym:
+            // emit eql op
+
+            break;
+    }
+
     return 0;
 }
 
@@ -381,6 +450,17 @@ void factor()
     }
     else
         error(28);
+}
+
+void emit(int op, int l, int m){
+    if(codeLength > MAX_CODE_LENGTH){
+        error(29);
+    }
+
+    code[codeLength].OP = op;
+    code[codeLength].L = l;
+    code[codeLength].M = m;
+    codeLength++;
 }
 
 void error(int num)
@@ -474,6 +554,12 @@ void error(int num)
             break;
         case 28:
             printf("ERROR: identifier, (, or number expected.\n");
+            break;
+        case 29:
+            printf("ERROR: code length too long\n");
+            break;
+        default:
+            printf("No such error code: %d\n", num);
             break;
     }
     exit(0);

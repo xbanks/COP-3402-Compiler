@@ -1,4 +1,4 @@
-const beginningX= 3;
+const beginningX 3;	/*Syntax error: '=' expected.*/
 
 var facRes, facParam;
 
