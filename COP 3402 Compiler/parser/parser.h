@@ -28,17 +28,17 @@ typedef struct Instruction
 enum IS
 {
     INVALID,
-    LIT,
-    OPR,
-    LOD,
-    STO,
-    CAL,
-    INC,
-    JMP,
-    JPC,
-    SIO1,
-    SIO2,
-    SIO3
+    LIT = 1,
+    OPR = 2,
+    LOD = 3,
+    STO = 4,
+    CAL = 5,
+    INC = 6,
+    JMP = 7,
+    JPC = 8,
+    SIO1 = 9,
+    SIO2 = 10,
+    SIO3 = 11
 };
 
 enum AR

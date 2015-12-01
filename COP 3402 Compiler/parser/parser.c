@@ -204,6 +204,10 @@ void constDeclaration()
         }
         int number = getNumber();
         enter(1, identifier, number, LEVEL, ADDRESS);
+
+        emit(LIT, 0, number);
+        emit(STO, LEVEL, ADDRESS);
+
         getToken();
     }while(TOKEN == commasym);
     if(TOKEN != semicolonsym){
@@ -223,6 +227,10 @@ void varDeclaration()
         char * identifier = getIdent();
         getToken();
         enter(2, identifier, 0, LEVEL, ADDRESS);
+
+        emit(LIT, 0, 0);
+        emit(STO, LEVEL, ADDRESS);
+
         ADDRESS++;
     }while(TOKEN == commasym);
     if(TOKEN != semicolonsym){
@@ -251,9 +259,9 @@ void procDelcaration()
         LEVEL = LEVEL+1;
         ADDRESS = 4;
 
+        int tempCodePosition = codeLength;
         emit(JMP, 0, 0);
         emit(INC, 0, 6);
-        int tempCodePosition = codeLength;
         printf("tempCodePosition: %d", tempCodePosition);
         block();
         emit(OPR, 0, 0);
@@ -297,6 +305,33 @@ int symbolType(char * name, int level){
     return -1;
 }
 
+int levelByName(char * name){
+    int i;
+    for(i=1; i<=symLength; i++){
+        if(strcmp(symbol_table[i].name, name) == 0){
+            return LEVEL - symbol_table[i].level;
+        }
+    }
+}
+
+int valByName(char * name){
+    int i;
+    for(i=1; i<=symLength; i++){
+        if(strcmp(symbol_table[i].name, name) == 0){
+            return symbol_table[i].val;
+        }
+    }
+}
+
+int addressByName(char * name){
+    int i;
+    for(i=1; i<=symLength; i++){
+        if(strcmp(symbol_table[i].name, name) == 0){
+            return symbol_table[i].addr;
+        }
+    }
+}
+
 void statement()
 {
     printf("STATEMENT\n");
@@ -322,6 +357,8 @@ void statement()
 
         getToken();
         expression();
+
+        emit(STO, levelByName(ident), addressByName(ident));
     }
     else if(TOKEN == callsym)
     {
@@ -330,6 +367,8 @@ void statement()
             error(14);
 
         char * ident = getIdent();
+
+        emit(CAL, levelByName(ident), addressByName(ident));
         getToken();
     }
     else if(TOKEN == beginsym)
@@ -351,21 +390,34 @@ void statement()
         condition();
         if(TOKEN != thensym)
             error(16);
+
+        int tempCodePosition = codeLength;
+        emit(JMP, 0, 0);
         getToken();
         statement();
         if(TOKEN == elsesym){
+            int elseCodePos = codeLength;
+            emit(JMP, 0, 0);
+            code[tempCodePosition].M = codeLength;
             getToken();
             statement();
+            code[elseCodePos].M = codeLength;
         }
     }
     else if(TOKEN == whilesym)
     {
         getToken();
+        int conditionCodePos = codeLength;
         condition();
         if(TOKEN != dosym)
             error(18);
         getToken();
+        int whileCodePos = codeLength;
+        emit(JPC, 0, 0);
         statement();
+
+        emit(JMP, 0, conditionCodePos);
+        code[whileCodePos].M = codeLength;
     }
 }
 
@@ -376,12 +428,13 @@ void condition()
     {
         getToken();
         expression();
+        emit(OPR, 0, ODD);
     }
     else
     {
         expression();
-        if(relOP() == 0)
-            error(20);
+        relOP();
+            
         getToken();
         expression();
     }
@@ -390,31 +443,53 @@ void condition()
 int relOP()
 {
     printf("IN RELOP\n");
-    if(TOKEN ==  eqsym || TOKEN == neqsym ||
-     TOKEN == lessym || TOKEN == leqsym || 
-     TOKEN == gtrsym || geqsym)
-        return 1;
-
     switch(TOKEN){
         case eqsym:
             // emit eql op
-
+            emit(OPR, 0, EQL);
+            break;
+        case neqsym:
+            emit(OPR, 0, NEQ);
+            break;
+        case leqsym:
+            emit(OPR, 0, LEQ);
+            break;
+        case geqsym:
+            emit(OPR, 0, GEQ);
+            break;
+        case gtrsym:
+            emit(OPR, 0, GTR);
+            break;
+        case lessym:
+            emit(OPR, 0, LSS);
+            break;
+        default:
+            error(20);
             break;
     }
-
-    return 0;
 }
 
 void expression()
 {
     printf("EXPRESSION\n");
-    if(TOKEN == plussym || TOKEN == minussym)
+    int sign = 1;
+    if(TOKEN == plussym || TOKEN == minussym){
+        int sign = ( ( TOKEN == plussym ) ? 1 : -1);
         getToken();
+    }
     term();
+    emit(LIT, 0, sign);
+    emit(OPR, 0, MUL);
     while(TOKEN == plussym || TOKEN == minussym)
     {
         getToken();
         term();
+        if(TOKEN == plussym){
+            emit(OPR, 0, ADD);
+        }
+        else{
+            emit(OPR, 0, SUB);
+        }
     }
 }
 
@@ -426,6 +501,13 @@ void term()
     {
         getToken();
         factor();
+
+        if(TOKEN == multsym){
+            emit(OPR, 0, MUL);
+        }
+        else{
+            emit(OPR, 0, DIV);
+        }
     }
 }
 
@@ -434,10 +516,14 @@ void factor()
     printf("FACTOR\n");
     if(TOKEN == identsym){
         char * ident = getIdent();
+
+        emit(LOD, levelByName(ident), addressByName(ident));
         getToken();
     }
     else if(TOKEN ==numbersym){
         int num = getNumber();
+
+        emit(LIT, 0, num);
         getToken();
     }
     else if(TOKEN == lparentsym)
@@ -461,6 +547,7 @@ void emit(int op, int l, int m){
     code[codeLength].L = l;
     code[codeLength].M = m;
     codeLength++;
+    printf("codeLength++\n");
 }
 
 void error(int num)
